@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Midterms 2026 — Trading Card Creator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://use.typekit.net/hxs5xdf.css">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --dem-blue: #2fa5d0;
+  --rep-red:  #d02f3a;
+  --card-bg:  var(--dem-blue);
+  --border-radius: 20px;
+  --ui-bg:      #0D0D0D;
+  --ui-surface: #161616;
+  --ui-raised:  #1E1E1E;
+  --ui-border:  #2C2C2C;
+  --ui-text:    #EAEAE2;
+  --ui-muted:   #808078;
+  --accent:     #F5C842;
+}
+
+html, body { min-height: 100vh; background: var(--ui-bg); color: var(--ui-text); font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.5; }
+
+/* ── App shell ── */
+.app { display: grid; grid-template-columns: 380px 1fr; grid-template-rows: 56px 1fr; min-height: 100vh; }
+
+/* ── Header ── */
+header {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-brand {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 21px; letter-spacing: 0.3px; color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
+}
+.header-brand span { color: var(--ui-muted); font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 400; }
+.header-actions { display: flex; gap: 8px; }
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--ui-surface);
+  border-right: 1px solid var(--ui-border);
+  overflow-y: auto; overflow-x: hidden;
+  padding: 18px 16px 32px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--ui-border); border-radius: 2px; }
+
+.section-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px; letter-spacing: 0.5px; color: var(--ui-muted);
+  text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* Party toggle */
+.party-toggle {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--ui-border);
+}
+.party-btn {
+  padding: 11px 6px; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 15px;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px;
+  background: var(--ui-bg); color: var(--ui-muted);
+}
+.party-btn.dem.active { background: var(--dem-blue); color: #fff; }
+.party-btn.rep.active { background: var(--rep-red);  color: #fff; }
+.party-btn:not(.active):hover { background: var(--ui-raised); color: var(--ui-text); }
+
+/* Form fields */
+.field-group { display: flex; flex-direction: column; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 10px; letter-spacing: 0.3px; color: var(--ui-muted); text-transform: uppercase; font-weight: 500; }
+.field input, .field textarea, .field select {
+  background: var(--ui-bg); border: 1px solid var(--ui-border); border-radius: 7px;
+  color: var(--ui-text); padding: 8px 11px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  transition: border-color 0.15s; resize: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.field textarea { min-height: 64px; }
+.field select option { background: #1A1A1A; }
+
+/* Toggle row (enable/disable sections) */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.toggle-row .section-label { margin-bottom: 0; }
+.toggle-switch {
+  position: relative; width: 36px; height: 20px;
+  cursor: pointer; flex-shrink: 0;
+}
+.toggle-switch input { display: none; }
+.toggle-track {
+  position: absolute; inset: 0; border-radius: 10px;
+  background: var(--ui-border); transition: background 0.2s;
+}
+.toggle-switch input:checked ~ .toggle-track { background: var(--accent); }
+.toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+.section-body { display: flex; flex-direction: column; gap: 10px; }
+.section-body.disabled { opacity: 0.35; pointer-events: none; }
+
+/* Sliders */
+.slider-wrap { display: flex; flex-direction: column; gap: 5px; }
+.slider-header { display: flex; justify-content: space-between; align-items: center; }
+.slider-label { font-size: 10px; letter-spacing: 0.3px; color: var(--ui-muted); text-transform: uppercase; }
+.slider-value { font-family: 'DM Sans', sans-serif; font-size: 16px; color: var(--accent); }
+.spectrum-track { position: relative; height: 11px; border-radius: 6px; }
+.spectrum-track.voting { background: linear-gradient(to right, var(--dem-blue), #9B59B6, var(--rep-red)); }
+.spectrum-track.bridge { background: linear-gradient(to right, #C8102E, #E8A020, #27AE60); }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 11px; border-radius: 6px;
+  background: transparent; cursor: pointer; position: relative; z-index: 2;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 19px; height: 19px; border-radius: 50%;
+  background: white; border: 3px solid var(--accent);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5); cursor: grab; transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.2); }
+.spectrum-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--ui-muted); }
+
+/* Upload zones */
+.upload-zone {
+  border: 2px dashed var(--ui-border); border-radius: 10px; padding: 14px;
+  text-align: center; cursor: pointer; transition: all 0.2s; display: block;
+}
+.upload-zone:hover { border-color: var(--accent); background: rgba(245,200,66,0.04); }
+.upload-zone input[type="file"] { display: none; }
+.upload-zone .upload-icon { font-size: 22px; margin-bottom: 5px; }
+.upload-zone .upload-text  { font-size: 11px; color: var(--ui-muted); }
+.upload-zone .upload-title { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+.upload-thumb { width: 52px; height: 52px; object-fit: contain; border-radius: 6px; margin: 0 auto 5px; display: block; }
+
+/* Buttons */
+.btn {
+  border: none; border-radius: 8px; padding: 9px 16px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  cursor: pointer; transition: all 0.18s; display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; justify-content: center; width: 100%; }
+.btn-primary:hover { background: #f5d060; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(245,200,66,0.3); }
+.btn-outline { background: transparent; border: 1px solid var(--ui-border); color: var(--ui-text); }
+.btn-outline:hover { border-color: var(--ui-text); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-ghost { background: transparent; color: var(--ui-muted); padding: 5px 8px; font-size: 12px; border-radius: 6px; }
+.btn-ghost:hover { color: #e05555; background: rgba(224,85,85,0.08); }
+.paste-box {
+  width: 100%; box-sizing: border-box; margin-top: 8px;
+  background: var(--ui-bg); border: 1px solid var(--ui-border); border-radius: 7px;
+  color: var(--ui-text); font-family: monospace; font-size: 11.5px; line-height: 1.65;
+  padding: 8px 10px; resize: vertical; min-height: 90px;
+}
+.paste-box:focus { outline: none; border-color: var(--accent); }
+.btn-full { width: 100%; justify-content: center; margin-top: 8px; }
+
+/* Dividers */
+.sidebar-divider { height: 1px; background: var(--ui-border); margin: 0 -16px; }
+
+/* Canvas area */
+.canvas-area {
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 32px; background: #111; position: relative; overflow: auto;
+}
+.canvas-area::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 22px 22px; pointer-events: none;
+}
+
+/* Zoom */
+.zoom-controls { position: absolute; top: 16px; right: 20px; display: flex; gap: 4px; }
+.zoom-btn {
+  width: 28px; height: 28px; border: 1px solid var(--ui-border); border-radius: 6px;
+  background: rgba(0,0,0,0.6); color: var(--ui-text); font-size: 15px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(8px); transition: all 0.15s;
+}
+.zoom-btn:hover { border-color: var(--accent); color: var(--accent); }
+.scale-note {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.65); border: 1px solid var(--ui-border); border-radius: 20px;
+  padding: 3px 12px; font-size: 10px; color: var(--ui-muted); white-space: nowrap; backdrop-filter: blur(8px);
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--accent); color: #000;
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  padding: 9px 22px; border-radius: 20px; z-index: 1000;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ══════════════════════════════════════════
+   THE CARD
+══════════════════════════════════════════ */
+#card-preview {
+  /* Exact 1984 × 2835 ratio */
+  width: 420px;
+  height: 600px;           /* 420 × (2835/1984) = 599.8 ≈ 600px */
+  aspect-ratio: 1984 / 2835;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--dem-blue);
+  transform-origin: center;
+  transition: background 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── TOP HALF: image + info side by side ── */
+.card-top-half {
+  display: flex;
+  height: 300px;    /* exactly half of 600px card height */
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Dem = photo LEFT, info RIGHT | Rep = photo RIGHT, info LEFT */
+.card-top-half.dem { flex-direction: row; }
+.card-top-half.rep { flex-direction: row-reverse; }
+
+/* Photo pane */
+.card-photo-pane {
+  width: 52%;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0,0,0,0.18);
+}
+.card-photo-pane img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+}
+.card-photo-placeholder {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.25); font-size: 52px;
+}
+
+/* Info pane */
+.card-info-pane {
+  flex: 1;
+  background: #fff;
+  display: flex; flex-direction: column;
+  padding: 13px 14px 10px;
+  min-width: 0;
+  position: relative;
+}
+
+/* Party + State row */
+.card-header-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.card-header-left {}
+.card-chamber-label {
+  font-size: 13px; color: #888; letter-spacing: 0;
+  text-transform: uppercase; font-weight: 500; display: block; margin-bottom: 1px;
+}
+.card-state-name {
+  font-family: noka, sans-serif; font-weight: 600; font-style: normal;
+  font-size: 18px; color: #111; display: block; line-height: 1.1;
+}
+.card-logo-box {
+  width: 52px; height: 52px; flex-shrink: 0;
+  position: relative; top: -5px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-logo-box img { max-width: 40px; max-height: 40px; width: auto; height: auto; display: block; }
+.card-logo-placeholder-inner {
+  width: 52px; height: 52px; border-radius: 7px; background: #F2F2F2;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+
+/* Name */
+.card-name-block { margin-bottom: 8px; }
+.card-name-divider {
+  border: none;
+  border-top: 1px solid #E0E0E0;
+  margin: 0 0 8px 0;
+}
+.card-first { font-family: noka, sans-serif; font-weight: 500; font-style: normal; font-size: 20px; color: #222; line-height: 1; display: block; }
+.card-last  { font-family: noka, sans-serif; font-weight: 600; font-style: normal; font-size: 30px; color: #111; line-height: 1.05; display: block; }
+
+/* Bio rows */
+.card-bio-rows { display: flex; flex-direction: column; gap: 6px; }
+.card-bio-row {}
+.card-bio-lbl {
+  font-size: 11px; color: #aaa; letter-spacing: 0;
+  text-transform: uppercase; font-weight: 600; display: block;
+}
+.card-bio-val {
+  font-family: noka, sans-serif; font-weight: 600; font-style: normal;
+  font-size: 15px; color: #111; display: block; line-height: 1.25;
+}
+
+/* ── BOTTOM HALF: full-width white panel, fills remaining 300px ── */
+.card-bottom-half {
+  flex: 1;
+  background: #fff;
+  padding: 12px 16px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  border-top: 3px solid var(--dem-blue);
+  transition: border-color 0.3s;
+  overflow: hidden;
+}
+.card-bottom-half.rep { border-color: var(--rep-red); }
+
+/* Quote band across top of bottom panel */
+.card-quote-band {
+  background: #F7F7F7;
+  border-radius: 8px;
+  padding: 8px 11px;
+}
+.card-quote-text {
+  font-family: noka, sans-serif; font-weight: 500; font-style: normal;
+  font-size: 14px; line-height: 1.55;
+  color: #444;
+}
+
+/* Spectrums */
+.card-spectrums-section { display: flex; flex-direction: column; gap: 7px; }
+.card-spec-item {}
+.card-spec-lbl {
+  font-size: 11px; color: #999; letter-spacing: 0;
+  text-transform: uppercase; font-weight: 700; margin-bottom: 3px; display: block;
+}
+.card-spec-bar {
+  height: 10px; border-radius: 5px; position: relative; overflow: visible;
+}
+.fill-voting {
+  position: absolute; inset: 0; border-radius: 4px;
+  background: linear-gradient(to right, var(--dem-blue), #9B59B6, var(--rep-red));
+}
+.fill-bridge {
+  position: absolute; inset: 0; border-radius: 4px;
+  background: linear-gradient(to right, #C8102E, #E8A020, #27AE60);
+}
+.spec-marker {
+  position: absolute; top: 50%; transform: translate(-50%, -50%);
+  width: 18px; height: 18px; border-radius: 50%;
+  background: white; border: 2.5px solid #222;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.28);
+}
+.card-spec-ends {
+  display: flex; justify-content: space-between; margin-top: 2px;
+}
+.card-spec-end { font-size: 11px; letter-spacing: 0; font-weight: 700; }
+
+/* Campaign finance */
+.card-finance {
+  padding: 8px 10px;
+  background: #F7F7F7; border-radius: 8px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.card-finance-label {
+  font-size: 11px; color: #aaa; letter-spacing: 0;
+  text-transform: uppercase; font-weight: 700;
+}
+.card-finance-value {
+  font-family: noka, sans-serif; font-weight: 600; font-style: normal;
+  font-size: 26px; color: #111;
+}
+.card-finance-value.dem { color: var(--dem-blue); }
+.card-finance-value.rep { color: var(--rep-red); }
+
+/* Endorsements */
+.card-endorsements {}
+.card-endorse-label {
+  font-size: 11px; color: #aaa; letter-spacing: 0;
+  text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px;
+}
+.card-endorse-names {
+  font-size: 13px; color: #333; line-height: 1.5; font-weight: 500;
+}
+
+/* Bottom logo */
+.card-bottom-logo {
+  position: absolute; bottom: 10px; left: 0; right: 0;
+  display: flex; justify-content: center; align-items: center;
+  pointer-events: none;
+}
+.card-bottom-logo img {
+  width: 35.3%; /* 700px at 1984px export width */
+  height: auto; display: block;
+}
+
+/* Card footer */
+.card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 6px; border-top: 1px solid #EBEBEB; margin-top: 2px;
+}
+.card-footer-brand {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px; letter-spacing: 2px; color: #111;
+  display: flex; align-items: center; gap: 3px;
+}
+.card-star { transition: color 0.3s; }
+.card-star.dem { color: var(--dem-blue); }
+.card-star.rep { color: var(--rep-red); }
+.card-footer-handle { font-size: 12px; color: #bbb; letter-spacing: 0.4px; }
+
+#export-canvas { display: none; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="header-brand">MIDTERMS ★ 2026 <span>/ Card Creator</span></div>
+    <div class="header-actions">
+      <button class="btn btn-primary btn-sm" onclick="exportCard()">⬇ Exportar Hi-Res 1984×2835</button>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <!-- Quick paste + Clear -->
+    <div>
+      <div class="toggle-row">
+        <div class="section-label">Pegado rápido</div>
+        <button class="btn btn-ghost" onclick="clearCard()">✕ Limpiar</button>
+      </div>
+      <textarea id="pasteBox" class="paste-box" placeholder="partido: dem&#10;nombre: James&#10;apellido: Talarico&#10;cargo: Senado&#10;estado: Texas&#10;nacimiento: Round Rock, Texas&#10;edad: 36 años&#10;profesión: Político y educador&#10;cita: «Texto de la cita»&#10;voto: 20&#10;gobernar: 35&#10;fondos: $4.2M&#10;apoyos: Obama, AFL-CIO, Sierra Club"></textarea>
+      <button class="btn btn-outline btn-full" onclick="applyPaste()">↳ Aplicar datos</button>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Party -->
+    <div>
+      <div class="section-label">Partido</div>
+      <div class="party-toggle">
+        <button class="party-btn dem active" id="btn-dem" onclick="setParty('dem')">🫏 Demócrata</button>
+        <button class="party-btn rep"         id="btn-rep" onclick="setParty('rep')">🐘 Republicano</button>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Identity -->
+    <div>
+      <div class="section-label">Identidad</div>
+      <div class="field-group">
+        <div class="field"><label>Nombre</label><input type="text" id="firstName" value="James" oninput="updateCard()"></div>
+        <div class="field"><label>Apellido</label><input type="text" id="lastName" value="Talarico" oninput="updateCard()"></div>
+        <div class="field">
+          <label>Cargo / Cámara</label>
+          <select id="chamber" onchange="updateCard()">
+            <option value="Senado">Senado</option>
+            <option value="Cámara de Representantes">Cámara de Representantes</option>
+            <option value="Gobernador/a">Gobernador/a</option>
+            <option value="Fiscal General">Fiscal General</option>
+          </select>
+        </div>
+        <div class="field"><label>Estado</label><input type="text" id="state" value="Texas" oninput="updateCard()"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Bio -->
+    <div>
+      <div class="section-label">Datos biográficos</div>
+      <div class="field-group">
+        <div class="field"><label>Lugar de nacimiento</label><input type="text" id="birthplace" value="Round Rock, Texas" oninput="updateCard()"></div>
+        <div class="field"><label>Edad</label><input type="text" id="age" value="36 años" oninput="updateCard()"></div>
+        <div class="field"><label>Profesión</label><input type="text" id="profession" value="Político y educador" oninput="updateCard()"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Quote (toggleable) -->
+    <div>
+      <div class="toggle-row">
+        <div class="section-label">Cita destacada</div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="quoteToggle" checked onchange="toggleSection('quoteToggle','quoteBody','cardQuoteBand')">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="section-body" id="quoteBody">
+        <div class="field">
+          <textarea id="quote" oninput="updateCard()">«La mayor división en este país no es entre la izquierda y la derecha. Es entre los de arriba y los de abajo»</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Spectrums (toggleable) -->
+    <div>
+      <div class="toggle-row">
+        <div class="section-label">Espectros políticos</div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="spectrumToggle" checked onchange="toggleSection('spectrumToggle','spectrumBody','cardSpectrums')">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="section-body" id="spectrumBody">
+        <div class="slider-wrap">
+          <div class="slider-header">
+            <span class="slider-label">Posición de voto</span>
+            <span class="slider-value" id="votingVal">20</span>
+          </div>
+          <div class="spectrum-track voting">
+            <input type="range" id="votingSlider" min="0" max="100" value="20" oninput="updateSliders()">
+          </div>
+          <div class="spectrum-labels"><span>Dem</span><span>Rep</span></div>
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header">
+            <span class="slider-label">Su forma de gobernar</span>
+            <span class="slider-value" id="bridgeVal">35</span>
+          </div>
+          <div class="spectrum-track bridge">
+            <input type="range" id="bridgeSlider" min="0" max="100" value="35" oninput="updateSliders()">
+          </div>
+          <div class="spectrum-labels"><span>Divide</span><span>Une</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Campaign Finance (toggleable) -->
+    <div>
+      <div class="toggle-row">
+        <div class="section-label">Financiación de campaña</div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="financeToggle" checked onchange="toggleSection('financeToggle','financeBody','cardFinance')">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="section-body" id="financeBody">
+        <div class="field"><label>Fondos recaudados</label><input type="text" id="fundsRaised" value="$4.2M" oninput="updateCard()"></div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Endorsements (toggleable) -->
+    <div>
+      <div class="toggle-row">
+        <div class="section-label">Apoyos</div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="endorseToggle" checked onchange="toggleSection('endorseToggle','endorseBody','cardEndorsements')">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div class="section-body" id="endorseBody">
+        <div class="field">
+          <label>Nombres (separados por coma)</label>
+          <textarea id="endorsements" oninput="updateCard()" placeholder="Barack Obama, Bernie Sanders…">Barack Obama, AFL-CIO, Sierra Club</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Uploads -->
+    <div>
+      <div class="section-label">Imágenes</div>
+      <div class="field-group">
+        <label class="upload-zone" for="photoInput">
+          <input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp" onchange="handlePhoto(event)">
+          <div id="photoPreviewWrap">
+            <div class="upload-icon">🖼️</div>
+            <div class="upload-title">Foto del candidato</div>
+            <div class="upload-text">PNG transparente recomendado</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <!-- Export -->
+    <div>
+      <div class="section-label">Exportar</div>
+      <button class="btn btn-primary" onclick="exportCard()">⬇ Exportar PNG 1984×2835</button>
+    </div>
+
+  </aside>
+
+  <!-- ── Canvas ── -->
+  <main class="canvas-area">
+    <div class="scale-note">Vista previa · exportación a máxima resolución</div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomCard(-0.1)">−</button>
+      <button class="zoom-btn" onclick="zoomCard(+0.1)">+</button>
+    </div>
+
+    <!-- ════════════ CARD ════════════ -->
+    <div id="card-preview">
+
+      <!-- TOP HALF -->
+      <div class="card-top-half dem" id="cardTopHalf">
+
+        <!-- Photo pane -->
+        <div class="card-photo-pane" id="photoPane">
+          <div class="card-photo-placeholder" id="photoPlaceholder">👤</div>
+          <img id="cardPhoto" src="" alt="" style="display:none;">
+        </div>
+
+        <!-- Info pane -->
+        <div class="card-info-pane">
+          <div class="card-header-row">
+            <div class="card-header-left">
+              <span class="card-chamber-label" id="cardChamber">Senado</span>
+              <span class="card-state-name"   id="cardState">Texas</span>
+            </div>
+            <div class="card-logo-box" id="logoBox">
+              <img id="cardLogo" src="https://raw.githubusercontent.com/mariocstrv/card-generator/refs/heads/main/democrata.png" alt="" crossorigin="anonymous">
+            </div>
+          </div>
+
+          <div class="card-name-block">
+            <span class="card-first" id="cardFirstName">James</span>
+            <span class="card-last"  id="cardLastName">Talarico</span>
+          </div>
+
+          <hr class="card-name-divider">
+
+          <div class="card-bio-rows">
+            <div class="card-bio-row">
+              <span class="card-bio-lbl">Lugar de nacimiento</span>
+              <span class="card-bio-val" id="cardBirthplace">Round Rock, Texas</span>
+            </div>
+            <div class="card-bio-row">
+              <span class="card-bio-lbl">Edad</span>
+              <span class="card-bio-val" id="cardAge">36 años</span>
+            </div>
+            <div class="card-bio-row">
+              <span class="card-bio-lbl">Profesión</span>
+              <span class="card-bio-val" id="cardProfession">Político y educador</span>
+            </div>
+          </div>
+        </div>
+      </div><!-- /card-top-half -->
+
+      <!-- BOTTOM HALF (full width) -->
+      <div class="card-bottom-half dem" id="cardBottomHalf">
+
+        <!-- Quote -->
+        <div class="card-quote-band" id="cardQuoteBand">
+          <p class="card-quote-text" id="cardQuote">«La mayor división en este país no es entre la izquierda y la derecha. Es entre los de arriba y los de abajo»</p>
+        </div>
+
+        <!-- Spectrums -->
+        <div class="card-spectrums-section" id="cardSpectrums">
+          <div class="card-spec-item">
+            <span class="card-spec-lbl">Posición de voto en el Congreso</span>
+            <div class="card-spec-bar">
+              <div class="fill-voting"></div>
+              <div class="spec-marker" id="votingMarker" style="left:20%"></div>
+            </div>
+            <div class="card-spec-ends">
+              <span class="card-spec-end" style="color:var(--dem-blue)">DEM</span>
+              <span class="card-spec-end" style="color:var(--rep-red)">REP</span>
+            </div>
+          </div>
+          <div class="card-spec-item">
+            <span class="card-spec-lbl">Su forma de gobernar</span>
+            <div class="card-spec-bar">
+              <div class="fill-bridge"></div>
+              <div class="spec-marker" id="bridgeMarker" style="left:35%"></div>
+            </div>
+            <div class="card-spec-ends">
+              <span class="card-spec-end" style="color:#C8102E">DIVIDE</span>
+              <span class="card-spec-end" style="color:#27AE60">UNE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Finance -->
+        <div class="card-finance" id="cardFinance">
+          <span class="card-finance-label">Fondos recaudados</span>
+          <span class="card-finance-value dem" id="cardFinanceValue">$4.2M</span>
+        </div>
+
+        <!-- Endorsements -->
+        <div class="card-endorsements" id="cardEndorsements">
+          <span class="card-endorse-label">Apoyos</span>
+          <div class="card-endorse-names" id="cardEndorseNames">Barack Obama · AFL-CIO · Sierra Club</div>
+        </div>
+
+      </div><!-- /card-bottom-half -->
+
+      <!-- Bottom logo: absolutely positioned over the card bottom -->
+      <div class="card-bottom-logo">
+        <img id="cardBottomLogo" src="https://raw.githubusercontent.com/mariocstrv/card-generator/refs/heads/main/midterms%20con%20texto.png" alt="Midterms 2026" crossorigin="anonymous">
+      </div>
+
+    </div><!-- /card-preview -->
+
+  </main>
+</div>
+
+<div class="toast" id="toast">✓ Imagen exportada</div>
+<canvas id="export-canvas"></canvas>
+
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+/* ── State ── */
+let party = 'dem';
+let cardScale = 1;
+
+const PARTY_LOGOS = {
+  dem: 'https://raw.githubusercontent.com/mariocstrv/card-generator/refs/heads/main/democrata.png',
+  rep: 'https://raw.githubusercontent.com/mariocstrv/card-generator/refs/heads/main/republicano.png',
+};
+
+/* ── Party ── */
+function setParty(p) {
+  party = p;
+  document.getElementById('btn-dem').classList.toggle('active', p === 'dem');
+  document.getElementById('btn-rep').classList.toggle('active', p === 'rep');
+
+  const card   = document.getElementById('card-preview');
+  const topH   = document.getElementById('cardTopHalf');
+  const botH   = document.getElementById('cardBottomHalf');
+  const fin    = document.getElementById('cardFinanceValue');
+
+  card.style.background = p === 'dem' ? 'var(--dem-blue)' : 'var(--rep-red)';
+  topH.className = `card-top-half ${p}`;
+  botH.className = `card-bottom-half ${p}`;
+  fin.className  = `card-finance-value ${p}`;
+
+  document.getElementById('cardLogo').src = PARTY_LOGOS[p];
+}
+
+/* ── Card content ── */
+function updateCard() {
+  setText('cardFirstName', 'firstName');
+  setText('cardLastName',  'lastName');
+  setText('cardChamber',   'chamber');
+  setText('cardState',     'state');
+  setText('cardBirthplace','birthplace');
+  setText('cardAge',       'age');
+  setText('cardProfession','profession');
+  setText('cardQuote',     'quote');
+  setText('cardFinanceValue','fundsRaised');
+
+  // Endorsements → bullet-joined
+  const raw = document.getElementById('endorsements').value;
+  const names = raw.split(',').map(s => s.trim()).filter(Boolean);
+  document.getElementById('cardEndorseNames').textContent = names.join(' · ');
+}
+
+function setText(targetId, sourceId) {
+  const src = document.getElementById(sourceId);
+  if (src) document.getElementById(targetId).textContent = src.value;
+}
+
+/* ── Sliders ── */
+function updateSliders() {
+  const vv = parseInt(document.getElementById('votingSlider').value);
+  const bv = parseInt(document.getElementById('bridgeSlider').value);
+  document.getElementById('votingVal').textContent = vv;
+  document.getElementById('bridgeVal').textContent = bv;
+  document.getElementById('votingMarker').style.left = vv + '%';
+  document.getElementById('bridgeMarker').style.left = bv + '%';
+}
+
+/* ── Section toggles ── */
+function toggleSection(checkId, bodyId, cardElId) {
+  const on   = document.getElementById(checkId).checked;
+  const body = document.getElementById(bodyId);
+  const card = document.getElementById(cardElId);
+  body.classList.toggle('disabled', !on);
+  if (card) card.style.display = on ? '' : 'none';
+}
+
+/* ── Photo upload ── */
+function handlePhoto(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const src = ev.target.result;
+    const img = document.getElementById('cardPhoto');
+    img.src = src;
+    img.style.display = 'block';
+    document.getElementById('photoPlaceholder').style.display = 'none';
+    document.getElementById('photoPreviewWrap').innerHTML =
+      `<img class="upload-thumb" src="${src}"><div class="upload-title">Foto cargada ✓</div><div class="upload-text">Click para cambiar</div>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+
+/* ── Zoom ── */
+function zoomCard(delta) {
+  cardScale = Math.min(2, Math.max(0.3, cardScale + delta));
+  document.getElementById('card-preview').style.transform = `scale(${cardScale})`;
+}
+
+/* ── Pre-crop helper: simulates object-fit:cover for html2canvas ── */
+function applyCoverCrop(imgEl, paneEl) {
+  const natW = imgEl.naturalWidth;
+  const natH = imgEl.naturalHeight;
+  if (!natW || !natH) return null;
+
+  const paneW = paneEl.clientWidth;
+  const paneH = paneEl.clientHeight;
+  const scale = Math.max(paneW / natW, paneH / natH);
+  const cropW = paneW / scale;
+  const cropH = paneH / scale;
+  const sx = (natW - cropW) / 2;
+  const sy = 0; // center top
+
+  const c = document.createElement('canvas');
+  c.width  = Math.round(cropW);
+  c.height = Math.round(cropH);
+  c.getContext('2d').drawImage(imgEl, sx, sy, cropW, cropH, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
+/* ── Export ── */
+async function exportCard() {
+  const card = document.getElementById('card-preview');
+  const prev = card.style.transform;
+  card.style.transform = 'scale(1)';
+
+  // Pre-crop photo so html2canvas doesn't need to handle object-fit
+  const photoEl = document.getElementById('cardPhoto');
+  const paneEl  = document.getElementById('photoPane');
+  let originalSrc = null;
+  if (photoEl.style.display !== 'none' && photoEl.naturalWidth) {
+    const cropped = applyCoverCrop(photoEl, paneEl);
+    if (cropped) {
+      originalSrc = photoEl.src;
+      photoEl.style.objectFit = 'fill';
+      await new Promise(resolve => {
+        photoEl.onload = resolve;
+        photoEl.src = cropped;
+      });
+    }
+  }
+
+  // Hide bottom logo so html2canvas doesn't render it (we'll draw it at full res)
+  const logoEl   = document.getElementById('cardBottomLogo');
+  const logoWrap = logoEl.parentElement;
+  logoWrap.style.display = 'none';
+
+  showToast('Generando imagen…');
+
+  const renderScale = 3;
+  const exportW = 1984;
+  const exportH = 2835;
+
+  try {
+    const canvas = await html2canvas(card, {
+      scale: renderScale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: null,
+      logging: false,
+      width: 420,
+      height: 600,
+    });
+
+    // Upscale card to exact output size
+    const cardCanvas = document.createElement('canvas');
+    cardCanvas.width  = exportW;
+    cardCanvas.height = exportH;
+    const cardCtx = cardCanvas.getContext('2d');
+    cardCtx.imageSmoothingEnabled = true;
+    cardCtx.imageSmoothingQuality = 'high';
+    cardCtx.drawImage(canvas, 0, 0, exportW, exportH);
+
+    // Draw bottom logo directly from native image at full export resolution
+    if (logoEl.naturalWidth) {
+      const logoW = Math.round(exportW * 0.353); // 35.3% = 700px at 1984px
+      const logoH = Math.round(logoW * logoEl.naturalHeight / logoEl.naturalWidth);
+      const logoX = Math.round((exportW - logoW) / 2);
+      const logoY = exportH - Math.round(10 * exportH / 600) - logoH;
+      cardCtx.drawImage(logoEl, logoX, logoY, logoW, logoH);
+    }
+
+    // Add 2% bezel in party color
+    const bezelW = Math.round(exportW * 0.02);
+    const bezelH = Math.round(exportH * 0.02);
+    const bezelColor = party === 'dem' ? '#2fa5d0' : '#d02f3a';
+
+    const out = document.createElement('canvas');
+    out.width  = exportW + bezelW * 2;
+    out.height = exportH + bezelH * 2;
+    const ctx = out.getContext('2d');
+    ctx.fillStyle = bezelColor;
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(cardCanvas, bezelW, bezelH);
+
+    const fn = document.getElementById('firstName').value || 'candidato';
+    const ln = document.getElementById('lastName').value  || '';
+    const filename = `midterms2026_${fn}_${ln}_${party}.png`.toLowerCase().replace(/\s+/g,'_');
+
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = out.toDataURL('image/png', 1.0);
+    a.click();
+    showToast('✓ Imagen exportada');
+  } catch(err) {
+    console.error(err); showToast('Error al exportar');
+  } finally {
+    card.style.transform = prev;
+    logoWrap.style.display = '';
+    if (originalSrc) {
+      photoEl.style.objectFit = 'cover';
+      photoEl.src = originalSrc;
+    }
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ── Clear ── */
+function clearCard() {
+  ['firstName','lastName','state','birthplace','age','profession','fundsRaised']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('quote').value = '';
+  document.getElementById('endorsements').value = '';
+  document.getElementById('votingSlider').value = 50;
+  document.getElementById('bridgeSlider').value = 50;
+  document.getElementById('chamber').selectedIndex = 0;
+  const img = document.getElementById('cardPhoto');
+  img.src = ''; img.style.display = 'none';
+  document.getElementById('photoPlaceholder').style.display = '';
+  document.getElementById('photoPreviewWrap').innerHTML =
+    '<div class="upload-icon">🖼️</div><div class="upload-title">Foto del candidato</div><div class="upload-text">PNG transparente recomendado</div>';
+  updateCard(); updateSliders();
+}
+
+/* ── Paste parser ── */
+function applyPaste() {
+  const text = document.getElementById('pasteBox').value.trim();
+  if (!text) return;
+
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const map = {};
+  text.split('\n').forEach(line => {
+    const idx = line.indexOf(':');
+    if (idx < 1) return;
+    map[norm(line.slice(0, idx).trim())] = line.slice(idx + 1).trim();
+  });
+
+  const fill = (id, key) => { if (map[key] != null) document.getElementById(id).value = map[key]; };
+
+  if (map['partido']) setParty(map['partido'].toLowerCase().startsWith('rep') ? 'rep' : 'dem');
+  fill('firstName',   'nombre');
+  fill('lastName',    'apellido');
+  fill('state',       'estado');
+  fill('birthplace',  'nacimiento');
+  fill('age',         'edad');
+  fill('profession',  'profesion');
+  fill('quote',       'cita');
+  fill('fundsRaised', 'fondos');
+  fill('endorsements','apoyos');
+
+  if (map['cargo']) {
+    const sel = document.getElementById('chamber');
+    const match = Array.from(sel.options).find(o =>
+      norm(o.value).includes(norm(map['cargo'])) || norm(map['cargo']).includes(norm(o.value).split(' ')[0])
+    );
+    if (match) sel.value = match.value;
+  }
+  if (map['voto'])     document.getElementById('votingSlider').value = parseInt(map['voto'])     || 50;
+  if (map['gobernar']) document.getElementById('bridgeSlider').value = parseInt(map['gobernar']) || 50;
+
+  updateCard(); updateSliders();
+  showToast('✓ Datos aplicados');
+}
+
+/* ── Init ── */
+updateCard();
+updateSliders();
+setParty('dem');
+
+</script>
+</body>
+</html>
